@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Dottore della Peste</string>
+    <string name="title">Dottore della Peste</string>
+    <string name="subtitle">Plague doctor voice changer</string>
+
+    <string name="status_idle">Idle</string>
+    <string name="status_running">Live - your voice is being changed</string>
+
+    <string name="start">Start voice changer</string>
+    <string name="stop">Stop voice changer</string>
+    <string name="refresh">Refresh audio devices</string>
+
+    <string name="label_input">Microphone (input)</string>
+    <string name="label_output">Output (Bluetooth speaker / stereo)</string>
+    <string name="label_pitch">Pitch (lower = deeper)</string>
+    <string name="label_growl">Growl / gravel</string>
+    <string name="label_reverb">Cave reverb</string>
+
+    <string name="auto">Automatic</string>
+
+    <string name="hint">How to use:\n1. Turn on and pair your Bluetooth speaker / stereo and any mic first.\n2. Tap Refresh so the devices show up in the lists.\n3. Pick the output (the speaker the changed voice comes out of).\n4. Tap Start, allow the microphone permission, then talk.\n\nIt keeps running in the background and stops only when you fully close the app.</string>
+
+    <string name="notif_title">Plague doctor voice is live</string>
+    <string name="notif_text">Changing your voice in the background</string>
+    <string name="notif_stop">Stop</string>
+    <string name="channel_name">Voice changer</string>
+    <string name="channel_desc">Keeps the voice changer running in the background</string>
+
+    <string name="perm_needed">Microphone permission is required to change your voice.</string>
+    <string name="no_mic">No microphone is available.</string>
+</resources>

@@ -1,0 +1,79 @@
+name: Build APK
+
+on:
+  push:
+    branches: [ main, master ]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.7'
+
+      - name: Accept Android SDK licenses and ensure components
+        run: |
+          SDKMAN="$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager"
+          if [ ! -x "$SDKMAN" ]; then SDKMAN="$(command -v sdkmanager || true)"; fi
+          if [ -n "$SDKMAN" ] && [ -x "$SDKMAN" ]; then
+            yes | "$SDKMAN" --licenses > /dev/null 2>&1 || true
+            "$SDKMAN" "platform-tools" "platforms;android-34" "build-tools;34.0.0" > /dev/null 2>&1 || true
+          fi
+
+      - name: Generate signing keystore
+        run: |
+          keytool -genkeypair -v -keystore plaguevoice.jks -storetype JKS \
+            -keyalg RSA -keysize 2048 -validity 10000 \
+            -alias plaguevoice \
+            -storepass plaguevoice123 -keypass plaguevoice123 \
+            -dname "CN=PlagueVoice, OU=Halloween, O=PlagueVoice, L=NA, ST=NA, C=IT"
+
+      - name: Write keystore.properties
+        run: |
+          cat > keystore.properties <<EOF
+          storeFile=${{ github.workspace }}/plaguevoice.jks
+          storePassword=plaguevoice123
+          keyAlias=plaguevoice
+          keyPassword=plaguevoice123
+          EOF
+
+      - name: Build release APK
+        run: gradle assembleRelease --no-daemon --stacktrace
+
+      - name: Collect APK
+        run: |
+          mkdir -p out
+          cp app/build/outputs/apk/release/app-release.apk out/PlagueVoice.apk
+          ls -la out
+
+      - name: Upload APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: PlagueVoice-apk
+          path: out/PlagueVoice.apk
+
+      - name: Publish release with APK
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v1.0.${{ github.run_number }}
+          name: PlagueVoice v1.0.${{ github.run_number }}
+          body: "Dottore della Peste - Halloween voice changer APK."
+          make_latest: true
+          files: out/PlagueVoice.apk
+          fail_on_unmatched_files: true

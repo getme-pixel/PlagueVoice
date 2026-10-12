@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#0E0E10">
+<title>Dottore della Peste - Voice Changer</title>
+<style>
+  :root {
+    --bg: #0E0E10;
+    --panel: #17171C;
+    --text: #EDE6DA;
+    --dim: #9A9A9A;
+    --accent: #B33A3A;
+    --accent-dark: #7A1414;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: radial-gradient(circle at 50% -10%, #2a0d0d 0%, var(--bg) 60%);
+    color: var(--text);
+    font-family: -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+    padding: 28px 18px 48px;
+  }
+  .wrap { width: 100%; max-width: 520px; text-align: center; }
+  .mask { width: 108px; height: 108px; margin: 0 auto 6px; display: block; }
+  h1 { font-size: 30px; margin: 6px 0 2px; letter-spacing: .5px; }
+  .sub { color: var(--dim); margin: 0 0 26px; font-size: 15px; }
+  .btn {
+    display: block;
+    width: 100%;
+    padding: 18px 20px;
+    font-size: 20px;
+    font-weight: 700;
+    color: #fff;
+    text-decoration: none;
+    border-radius: 14px;
+    background: linear-gradient(180deg, var(--accent), var(--accent-dark));
+    box-shadow: 0 10px 26px rgba(179,58,58,.35);
+    border: 1px solid rgba(255,255,255,.08);
+  }
+  .btn:active { transform: translateY(1px); }
+  .btn.secondary {
+    margin-top: 12px;
+    background: var(--panel);
+    box-shadow: none;
+    font-size: 16px;
+    font-weight: 500;
+    border: 1px solid #2a2a31;
+  }
+  .note { color: var(--dim); font-size: 13px; min-height: 20px; margin: 14px 0 0; }
+  .card {
+    text-align: left;
+    background: var(--panel);
+    border: 1px solid #24242b;
+    border-radius: 14px;
+    padding: 16px 18px;
+    margin-top: 24px;
+    font-size: 14px;
+    line-height: 1.6;
+  }
+  .card h2 { font-size: 15px; margin: 0 0 10px; color: var(--text); }
+  .card ol { margin: 0; padding-left: 20px; }
+  .card li { margin-bottom: 8px; }
+  .tag {
+    display: inline-block;
+    font-size: 12px;
+    color: var(--dim);
+    border: 1px solid #2a2a31;
+    border-radius: 999px;
+    padding: 4px 10px;
+    margin: 4px 4px 0 0;
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <svg class="mask" viewBox="0 0 108 108" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+    <circle cx="54" cy="54" r="52" fill="#8B1A1A"/>
+    <path d="M54,40 L44,46 L54,86 L64,46 Z" fill="#F2E9DC"/>
+    <path d="M54,26 C42,26 34,36 34,48 C34,50 36,52 38,51 L54,44 L70,51 C72,52 74,50 74,48 C74,36 66,26 54,26 Z" fill="#F2E9DC"/>
+    <circle cx="45" cy="44" r="4" fill="#0E0E10"/>
+    <circle cx="63" cy="44" r="4" fill="#0E0E10"/>
+  </svg>
+
+  <h1>Dottore della Peste</h1>
+  <p class="sub">Halloween plague doctor voice changer for Android</p>
+
+  <a id="download" class="btn" href="#" rel="noopener">Download APK</a>
+  <a class="btn secondary" href="#how">How to install and use</a>
+  <p id="note" class="note"></p>
+
+  <div class="card" id="how">
+    <h2>Quick start</h2>
+    <ol>
+      <li>Tap <b>Download APK</b>. If your phone asks, allow installing apps from your browser.</li>
+      <li>Open the downloaded file and install it. Android may warn that the app is unknown - that is normal for a self-made APK.</li>
+      <li>Turn on and pair your Bluetooth speaker / stereo first.</li>
+      <li>Open <b>Dottore della Peste</b>, tap <b>Refresh audio devices</b>, and pick the Bluetooth speaker as the output.</li>
+      <li>Tap <b>Start voice changer</b> and allow the microphone permission. Talk and enjoy.</li>
+    </ol>
+    <p>
+      <span class="tag">Low, gravelly plague doctor voice</span>
+      <span class="tag">Runs in the background</span>
+      <span class="tag">Bluetooth output</span>
+    </p>
+  </div>
+
+</div>
+
+<script>
+  /* ------------------------------------------------------------------
+     REPLACE THE URL BELOW with your own repository address.
+     After the GitHub Action builds the APK it is attached to the
+     "latest" release, so this link always downloads the newest build:
+
+       https://github.com/<YOUR_USER>/<YOUR_REPO>/releases/latest/download/PlagueVoice.apk
+     ------------------------------------------------------------------ */
+  var APK_URL = "https://github.com/YOUR_USER/YOUR_REPO/releases/latest/download/PlagueVoice.apk";
+
+  var dl = document.getElementById("download");
+  var note = document.getElementById("note");
+  var ua = navigator.userAgent || "";
+
+  dl.setAttribute("href", APK_URL);
+  dl.setAttribute("download", "PlagueVoice.apk");
+
+  var isAndroid = /android/i.test(ua);
+  var isConfigured = APK_URL.indexOf("YOUR_USER") === -1 && APK_URL.indexOf("YOUR_REPO") === -1;
+
+  if (!isConfigured) {
+    note.textContent = "Setup note: replace YOUR_USER / YOUR_REPO in the page with your GitHub details so the button points at your APK.";
+  } else if (isAndroid) {
+    note.textContent = "Android detected. Ready to download.";
+  } else {
+    note.textContent = "This APK is for Android phones (Samsung included). Open this page on your phone to install it.";
+  }
+
+  dl.addEventListener("click", function (e) {
+    if (!isConfigured) {
+      e.preventDefault();
+      alert("The download link is not configured yet. Replace YOUR_USER / YOUR_REPO with your GitHub repo.");
+    }
+  });
+</script>
+</body>
+</html>

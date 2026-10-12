@@ -1,0 +1,205 @@
+package com.plaguevoice;
+
+import android.content.Context;
+import android.media.AudioAttributes;
+import android.media.AudioDeviceInfo;
+import android.media.AudioFormat;
+import android.media.AudioRecord;
+import android.media.AudioTrack;
+import android.media.MediaRecorder;
+import android.os.Process;
+import android.util.Log;
+
+/**
+ * Captures the microphone, runs the plague-doctor processor and plays the result.
+ *
+ * Output uses the MEDIA usage so Bluetooth A2DP (a stereo / speaker) stays connected
+ * while we record. Input uses AudioSource.MIC (not VOICE_COMMUNICATION) for exactly the
+ * same reason - voice-communication would force SCO and drop the A2DP output.
+ */
+public class AudioEngine {
+
+    private static final String TAG = "PlagueVoiceEngine";
+    private static final int FRAME = 256;
+
+    private final Context context;
+    private final PlagueVoiceProcessor processor = new PlagueVoiceProcessor();
+
+    private AudioRecord record;
+    private AudioTrack track;
+    private Thread thread;
+    private volatile boolean running = false;
+
+    public AudioEngine(Context context) {
+        this.context = context.getApplicationContext();
+    }
+
+    public boolean isRunning() {
+        return running;
+    }
+
+    public void configure(float pitchSemitones, float growl, float reverb) {
+        processor.setPitchSemitones(pitchSemitones);
+        processor.setGrowl(growl);
+        processor.setReverb(reverb);
+    }
+
+    public void start(int inputDeviceId, int outputDeviceId) {
+        if (running) {
+            return;
+        }
+        try {
+            int minIn = AudioRecord.getMinBufferSize(
+                    PlagueVoiceProcessor.FS,
+                    AudioFormat.CHANNEL_IN_MONO,
+                    AudioFormat.ENCODING_PCM_16BIT);
+            int inBuf = Math.max(minIn, FRAME * 2 * 6);
+
+            AudioFormat inFormat = new AudioFormat.Builder()
+                    .setEncoding(AudioFormat.ENCODING_PCM_16BIT)
+                    .setSampleRate(PlagueVoiceProcessor.FS)
+                    .setChannelMask(AudioFormat.CHANNEL_IN_MONO)
+                    .build();
+
+            record = new AudioRecord.Builder()
+                    .setAudioSource(MediaRecorder.AudioSource.MIC)
+                    .setAudioFormat(inFormat)
+                    .setBufferSizeInBytes(inBuf)
+                    .build();
+
+            int minOut = AudioTrack.getMinBufferSize(
+                    PlagueVoiceProcessor.FS,
+                    AudioFormat.CHANNEL_OUT_MONO,
+                    AudioFormat.ENCODING_PCM_16BIT);
+            int outBuf = Math.max(minOut, FRAME * 2 * 6);
+
+            AudioFormat outFormat = new AudioFormat.Builder()
+                    .setEncoding(AudioFormat.ENCODING_PCM_16BIT)
+                    .setSampleRate(PlagueVoiceProcessor.FS)
+                    .setChannelMask(AudioFormat.CHANNEL_OUT_MONO)
+                    .build();
+
+            track = new AudioTrack.Builder()
+                    .setAudioAttributes(new AudioAttributes.Builder()
+                            .setUsage(AudioAttributes.USAGE_MEDIA)
+                            .setContentType(AudioAttributes.CONTENT_TYPE_SPEECH)
+                            .build())
+                    .setAudioFormat(outFormat)
+                    .setBufferSizeInBytes(outBuf)
+                    .setTransferMode(AudioTrack.MODE_STREAM)
+                    .build();
+
+            if (record.getState() != AudioRecord.STATE_INITIALIZED) {
+                Log.e(TAG, "AudioRecord not initialized");
+                release();
+                return;
+            }
+            if (track.getState() != AudioTrack.STATE_INITIALIZED) {
+                Log.e(TAG, "AudioTrack not initialized");
+                release();
+                return;
+            }
+
+            if (outputDeviceId >= 0) {
+                AudioDeviceInfo out = DeviceUtils.find(context, outputDeviceId, true);
+                if (out != null) {
+                    track.setPreferredDevice(out);
+                }
+            }
+            if (inputDeviceId >= 0) {
+                AudioDeviceInfo in = DeviceUtils.find(context, inputDeviceId, false);
+                if (in != null) {
+                    record.setPreferredDevice(in);
+                }
+            }
+
+            processor.reset();
+            running = true;
+            thread = new Thread(this::loop, "PlagueVoiceAudio");
+            thread.start();
+        } catch (Exception e) {
+            Log.e(TAG, "start failed", e);
+            running = false;
+            release();
+        }
+    }
+
+    private void loop() {
+        Process.setThreadPriority(Process.THREAD_PRIORITY_URGENT_AUDIO);
+        short[] inS = new short[FRAME];
+        short[] outS = new short[FRAME];
+        float[] inF = new float[FRAME];
+        float[] outF = new float[FRAME];
+        try {
+            record.startRecording();
+            track.play();
+            while (running) {
+                int n = record.read(inS, 0, FRAME);
+                if (n <= 0) {
+                    continue;
+                }
+                for (int i = 0; i < n; i++) {
+                    inF[i] = inS[i] / 32768f;
+                }
+                processor.process(inF, outF, n);
+                for (int i = 0; i < n; i++) {
+                    float v = outF[i];
+                    if (v > 1f) {
+                        v = 1f;
+                    } else if (v < -1f) {
+                        v = -1f;
+                    }
+                    outS[i] = (short) (v * 32767f);
+                }
+                track.write(outS, 0, n);
+            }
+        } catch (Exception e) {
+            Log.e(TAG, "loop error", e);
+        } finally {
+            try {
+                if (record != null) {
+                    record.stop();
+                }
+            } catch (Exception ignored) {
+            }
+            try {
+                if (track != null) {
+                    track.stop();
+                }
+            } catch (Exception ignored) {
+            }
+        }
+    }
+
+    public void stop() {
+        running = false;
+        Thread t = thread;
+        if (t != null) {
+            try {
+                t.join(600);
+            } catch (InterruptedException ignored) {
+                Thread.currentThread().interrupt();
+            }
+        }
+        release();
+    }
+
+    private void release() {
+        running = false;
+        try {
+            if (record != null) {
+                record.release();
+            }
+        } catch (Exception ignored) {
+        }
+        try {
+            if (track != null) {
+                track.release();
+            }
+        } catch (Exception ignored) {
+        }
+        record = null;
+        track = null;
+        thread = null;
+    }
+}
