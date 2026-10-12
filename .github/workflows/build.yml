@@ -37,18 +37,7 @@ jobs:
           fi
 
       - name: Build release APK
-        id: build_apk
-        run: |
-          set +e
-          gradle assembleRelease --no-daemon --stacktrace > build.log 2>&1
-          EXIT_CODE=$?
-          if [ $EXIT_CODE -ne 0 ]; then
-            while IFS= read -r line; do
-              echo "::error::$line"
-            done < <(grep -E "ERROR|FAILED|Exception|FAILURE|error:" build.log | head -n 20)
-            tail -n 40 build.log
-            exit $EXIT_CODE
-          fi
+        run: gradle assembleRelease --no-daemon --stacktrace
 
       - name: Collect APK
         run: |
