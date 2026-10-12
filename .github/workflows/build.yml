@@ -42,12 +42,13 @@ jobs:
           set +e
           gradle assembleRelease --no-daemon --stacktrace > build.log 2>&1
           EXIT_CODE=$?
-          echo "### Build Log (last 60 lines)" >> $GITHUB_STEP_SUMMARY
-          echo '```' >> $GITHUB_STEP_SUMMARY
-          tail -n 60 build.log >> $GITHUB_STEP_SUMMARY
-          echo '```' >> $GITHUB_STEP_SUMMARY
-          cat build.log
-          exit $EXIT_CODE
+          if [ $EXIT_CODE -ne 0 ]; then
+            while IFS= read -r line; do
+              echo "::error::$line"
+            done < <(grep -E "ERROR|FAILED|Exception|FAILURE|error:" build.log | head -n 20)
+            tail -n 40 build.log
+            exit $EXIT_CODE
+          fi
 
       - name: Collect APK
         run: |
