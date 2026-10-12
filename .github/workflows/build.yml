@@ -27,7 +27,7 @@ jobs:
         with:
           gradle-version: '8.7'
 
-      - name: Accept Android SDK licenses and ensure components
+      - name: Accept Android SDK licenses
         run: |
           SDKMAN="$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager"
           if [ ! -x "$SDKMAN" ]; then SDKMAN="$(command -v sdkmanager || true)"; fi
@@ -46,15 +46,13 @@ jobs:
 
       - name: Write keystore.properties
         run: |
-          cat > keystore.properties <<EOF
-          storeFile=${{ github.workspace }}/plaguevoice.jks
-          storePassword=plaguevoice123
-          keyAlias=plaguevoice
-          keyPassword=plaguevoice123
-          EOF
+          printf 'storeFile=%s/plaguevoice.jks\nstorePassword=plaguevoice123\nkeyAlias=plaguevoice\nkeyPassword=plaguevoice123\n' "${{ github.workspace }}" > keystore.properties
+          cat keystore.properties
 
       - name: Build release APK
         run: gradle assembleRelease --no-daemon --stacktrace
+        env:
+          ANDROID_HOME: ${{ env.ANDROID_HOME }}
 
       - name: Collect APK
         run: |
