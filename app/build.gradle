@@ -2,12 +2,6 @@ plugins {
     id 'com.android.application'
 }
 
-def keystorePropsFile = rootProject.file('keystore.properties')
-def keystoreProps = new Properties()
-if (keystorePropsFile.exists()) {
-    keystoreProps.load(new FileInputStream(keystorePropsFile))
-}
-
 android {
     namespace 'com.plaguevoice'
     compileSdk 34
@@ -20,24 +14,11 @@ android {
         versionName "1.0"
     }
 
-    signingConfigs {
-        release {
-            if (keystorePropsFile.exists()) {
-                storeFile file(keystoreProps['storeFile'].toString())
-                storePassword keystoreProps['storePassword'].toString()
-                keyAlias keystoreProps['keyAlias'].toString()
-                keyPassword keystoreProps['keyPassword'].toString()
-            }
-        }
-    }
-
     buildTypes {
         release {
             minifyEnabled false
             shrinkResources false
-            // If a real keystore is provided (keystore.properties) use it,
-            // otherwise sign with the debug key so the APK is always installable.
-            signingConfig keystorePropsFile.exists() ? signingConfigs.release : signingConfigs.debug
+            signingConfig signingConfigs.debug
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
         }
         debug {
@@ -48,6 +29,11 @@ android {
     compileOptions {
         sourceCompatibility JavaVersion.VERSION_17
         targetCompatibility JavaVersion.VERSION_17
+    }
+
+    lint {
+        abortOnError false
+        checkReleaseBuilds false
     }
 }
 

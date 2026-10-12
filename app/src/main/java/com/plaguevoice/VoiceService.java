@@ -60,7 +60,11 @@ public class VoiceService extends Service {
         int inId = intent != null ? intent.getIntExtra(EXTRA_IN, -1) : -1;
         int outId = intent != null ? intent.getIntExtra(EXTRA_OUT, -1) : -1;
 
-        startForeground(NOTIF_ID, buildNotification());
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            startForeground(NOTIF_ID, buildNotification(), android.content.pm.ServiceInfo.FOREGROUND_SERVICE_TYPE_MICROPHONE);
+        } else {
+            startForeground(NOTIF_ID, buildNotification());
+        }
 
         if (ACTION_UPDATE.equals(action)) {
             engine.configure(pitch, growl, reverb);

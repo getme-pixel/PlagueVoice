@@ -36,23 +36,8 @@ jobs:
             "$SDKMAN" "platform-tools" "platforms;android-34" "build-tools;34.0.0" > /dev/null 2>&1 || true
           fi
 
-      - name: Generate signing keystore
-        run: |
-          keytool -genkeypair -v -keystore plaguevoice.jks -storetype JKS \
-            -keyalg RSA -keysize 2048 -validity 10000 \
-            -alias plaguevoice \
-            -storepass plaguevoice123 -keypass plaguevoice123 \
-            -dname "CN=PlagueVoice, OU=Halloween, O=PlagueVoice, L=NA, ST=NA, C=IT"
-
-      - name: Write keystore.properties
-        run: |
-          printf 'storeFile=%s/plaguevoice.jks\nstorePassword=plaguevoice123\nkeyAlias=plaguevoice\nkeyPassword=plaguevoice123\n' "${{ github.workspace }}" > keystore.properties
-          cat keystore.properties
-
       - name: Build release APK
         run: gradle assembleRelease --no-daemon --stacktrace
-        env:
-          ANDROID_HOME: ${{ env.ANDROID_HOME }}
 
       - name: Collect APK
         run: |
