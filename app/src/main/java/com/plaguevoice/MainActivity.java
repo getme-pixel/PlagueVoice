@@ -70,6 +70,10 @@ public class MainActivity extends AppCompatActivity {
         startButton.setOnClickListener(v -> onStartStopClicked());
         findViewById(R.id.refreshButton).setOnClickListener(v -> reloadDevices());
 
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S && !hasBluetoothPermission()) {
+            requestNeededPermissions();
+        }
+
         reloadDevices();
         updateLabels();
         updateUi();
@@ -154,10 +158,21 @@ public class MainActivity extends AppCompatActivity {
                 == PackageManager.PERMISSION_GRANTED;
     }
 
+    private boolean hasBluetoothPermission() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            return ContextCompat.checkSelfPermission(this, Manifest.permission.BLUETOOTH_CONNECT)
+                    == PackageManager.PERMISSION_GRANTED;
+        }
+        return true;
+    }
+
     private void requestNeededPermissions() {
         List<String> need = new ArrayList<>();
         if (!hasMicPermission()) {
             need.add(Manifest.permission.RECORD_AUDIO);
+        }
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S && !hasBluetoothPermission()) {
+            need.add(Manifest.permission.BLUETOOTH_CONNECT);
         }
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU
                 && ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS)
@@ -174,6 +189,7 @@ public class MainActivity extends AppCompatActivity {
         if (requestCode != REQ_PERMS) {
             return;
         }
+        reloadDevices();
         if (hasMicPermission()) {
             startEngine();
         } else {

@@ -29,6 +29,7 @@ public final class DeviceUtils {
     }
 
     private static final int TYPE_BLE_HEADSET = 26; // AudioDeviceInfo.TYPE_BLE_HEADSET (API 31)
+    private static final int TYPE_BLE_SPEAKER = 27; // AudioDeviceInfo.TYPE_BLE_SPEAKER (API 31)
 
     private DeviceUtils() {
     }
@@ -89,6 +90,7 @@ public final class DeviceUtils {
             case AudioDeviceInfo.TYPE_USB_DEVICE:
             case AudioDeviceInfo.TYPE_USB_HEADSET:
             case TYPE_BLE_HEADSET:
+            case TYPE_BLE_SPEAKER:
                 return true;
             default:
                 return false;
@@ -102,6 +104,7 @@ public final class DeviceUtils {
             case AudioDeviceInfo.TYPE_BLUETOOTH_SCO:
             case AudioDeviceInfo.TYPE_USB_DEVICE:
             case AudioDeviceInfo.TYPE_USB_HEADSET:
+            case TYPE_BLE_HEADSET:
                 return true;
             default:
                 return false;
@@ -134,6 +137,12 @@ public final class DeviceUtils {
                 break;
             case AudioDeviceInfo.TYPE_BLUETOOTH_SCO:
                 kind = "Bluetooth headset";
+                break;
+            case TYPE_BLE_HEADSET:
+                kind = "Bluetooth BLE headset";
+                break;
+            case TYPE_BLE_SPEAKER:
+                kind = "Bluetooth BLE speaker";
                 break;
             case AudioDeviceInfo.TYPE_WIRED_HEADPHONES:
                 kind = "wired headphones";

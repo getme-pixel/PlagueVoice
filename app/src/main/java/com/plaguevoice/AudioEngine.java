@@ -4,18 +4,16 @@ import android.content.Context;
 import android.media.AudioAttributes;
 import android.media.AudioDeviceInfo;
 import android.media.AudioFormat;
+import android.media.AudioManager;
 import android.media.AudioRecord;
 import android.media.AudioTrack;
 import android.media.MediaRecorder;
+import android.os.Build;
 import android.os.Process;
 import android.util.Log;
 
 /**
  * Captures the microphone, runs the plague-doctor processor and plays the result.
- *
- * Output uses the MEDIA usage so Bluetooth A2DP (a stereo / speaker) stays connected
- * while we record. Input uses AudioSource.MIC (not VOICE_COMMUNICATION) for exactly the
- * same reason - voice-communication would force SCO and drop the A2DP output.
  */
 public class AudioEngine {
 
@@ -29,6 +27,8 @@ public class AudioEngine {
     private AudioTrack track;
     private Thread thread;
     private volatile boolean running = false;
+    private boolean scoStarted = false;
+    private boolean communicationDeviceSet = false;
 
     public AudioEngine(Context context) {
         this.context = context.getApplicationContext();
@@ -49,6 +49,37 @@ public class AudioEngine {
             return;
         }
         try {
+            AudioManager am = (AudioManager) context.getSystemService(Context.AUDIO_SERVICE);
+            AudioDeviceInfo inDev = (inputDeviceId >= 0) ? DeviceUtils.find(context, inputDeviceId, false) : null;
+            AudioDeviceInfo outDev = (outputDeviceId >= 0) ? DeviceUtils.find(context, outputDeviceId, true) : null;
+
+            boolean isBluetoothInput = false;
+            if (inDev != null) {
+                int type = inDev.getType();
+                if (type == AudioDeviceInfo.TYPE_BLUETOOTH_SCO || type == 26 /* TYPE_BLE_HEADSET */) {
+                    isBluetoothInput = true;
+                }
+            }
+
+            if (isBluetoothInput && am != null) {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                    boolean success = am.setCommunicationDevice(inDev);
+                    if (success) {
+                        communicationDeviceSet = true;
+                    } else {
+                        Log.w(TAG, "setCommunicationDevice returned false for " + inDev.getProductName());
+                    }
+                } else {
+                    am.startBluetoothSco();
+                    am.setBluetoothScoOn(true);
+                    scoStarted = true;
+                }
+            }
+
+            int audioSource = isBluetoothInput
+                    ? MediaRecorder.AudioSource.VOICE_COMMUNICATION
+                    : MediaRecorder.AudioSource.MIC;
+
             int minIn = AudioRecord.getMinBufferSize(
                     PlagueVoiceProcessor.FS,
                     AudioFormat.CHANNEL_IN_MONO,
@@ -62,7 +93,7 @@ public class AudioEngine {
                     .build();
 
             record = new AudioRecord.Builder()
-                    .setAudioSource(MediaRecorder.AudioSource.MIC)
+                    .setAudioSource(audioSource)
                     .setAudioFormat(inFormat)
                     .setBufferSizeInBytes(inBuf)
                     .build();
@@ -100,17 +131,11 @@ public class AudioEngine {
                 return;
             }
 
-            if (outputDeviceId >= 0) {
-                AudioDeviceInfo out = DeviceUtils.find(context, outputDeviceId, true);
-                if (out != null) {
-                    track.setPreferredDevice(out);
-                }
+            if (outDev != null) {
+                track.setPreferredDevice(outDev);
             }
-            if (inputDeviceId >= 0) {
-                AudioDeviceInfo in = DeviceUtils.find(context, inputDeviceId, false);
-                if (in != null) {
-                    record.setPreferredDevice(in);
-                }
+            if (inDev != null) {
+                record.setPreferredDevice(inDev);
             }
 
             processor.reset();
@@ -201,5 +226,20 @@ public class AudioEngine {
         record = null;
         track = null;
         thread = null;
+
+        AudioManager am = (AudioManager) context.getSystemService(Context.AUDIO_SERVICE);
+        if (am != null) {
+            if (communicationDeviceSet) {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                    am.clearCommunicationDevice();
+                }
+                communicationDeviceSet = false;
+            }
+            if (scoStarted) {
+                am.stopBluetoothSco();
+                am.setBluetoothScoOn(false);
+                scoStarted = false;
+            }
+        }
     }
 }
